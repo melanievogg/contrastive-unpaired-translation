@@ -4,3 +4,9 @@ dominate>=2.4.0
 visdom>=0.1.8.8
 packaging
 GPUtil>=1.4.0
+
+numpy
+scipy
+matplotlib>=3.1
+pytorch-fid==0.3.0
+importlib-metadata; python_version < "3.8"

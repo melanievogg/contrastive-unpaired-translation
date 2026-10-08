@@ -62,7 +62,7 @@ class CUTModel(BaseModel):
         self.visual_names = ['real_A', 'fake_B', 'real_B']
         self.nce_layers = [int(i) for i in self.opt.nce_layers.split(',')]
 
-        if opt.nce_idt and self.isTrain:
+        if opt.nce_idt and opt.lambda_NCE > 0 and self.isTrain:
             self.loss_names += ['NCE_Y']
             self.visual_names += ['idt_B']
 
@@ -106,7 +106,7 @@ class CUTModel(BaseModel):
         if self.opt.isTrain:
             self.compute_D_loss().backward()                  # calculate gradients for D
             self.compute_G_loss().backward()                   # calculate graidents for G
-            if self.opt.lambda_NCE > 0.0:
+            if self.opt.lambda_NCE > 0.0 and self.opt.netF == 'mlp_sample':
                 self.optimizer_F = torch.optim.Adam(self.netF.parameters(), lr=self.opt.lr, betas=(self.opt.beta1, self.opt.beta2))
                 self.optimizers.append(self.optimizer_F)
 
@@ -124,12 +124,12 @@ class CUTModel(BaseModel):
         # update G
         self.set_requires_grad(self.netD, False)
         self.optimizer_G.zero_grad()
-        if self.opt.netF == 'mlp_sample':
+        if hasattr(self, 'optimizer_F'):
             self.optimizer_F.zero_grad()
         self.loss_G = self.compute_G_loss()
         self.loss_G.backward()
         self.optimizer_G.step()
-        if self.opt.netF == 'mlp_sample':
+        if hasattr(self, 'optimizer_F'):
             self.optimizer_F.step()
 
     def set_input(self, input):

@@ -1,0 +1,2 @@
+label,direction,real_dir,fake_dir,n_real,n_fake,fid
+matched_nlayers3,AtoB,/home/vogg/doctr_cut_2d_matched/testB,/home/vogg/contrastive-unpaired-translation/results/doctr_SELFF_to_SD/test_latest/images/fake_B,1280,1280,258.97146143444695

@@ -101,6 +101,8 @@ class BaseModel(ABC):
         self.print_networks(opt.verbose)
 
     def parallelize(self):
+        if not self.gpu_ids:
+            return  # CPU runs must not construct CUDA DataParallel with empty device_ids.
         for name in self.model_names:
             if isinstance(name, str):
                 net = getattr(self, 'net' + name)

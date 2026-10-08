@@ -27,15 +27,17 @@ class UnalignedDataset(BaseDataset):
         self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')  # create a path '/path/to/data/trainA'
         self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')  # create a path '/path/to/data/trainB'
 
-        if opt.phase == "test" and not os.path.exists(self.dir_A) \
-           and os.path.exists(os.path.join(opt.dataroot, "valA")):
-            self.dir_A = os.path.join(opt.dataroot, "valA")
-            self.dir_B = os.path.join(opt.dataroot, "valB")
+        for directory in (self.dir_A, self.dir_B):
+            if not os.path.isdir(directory):
+                raise FileNotFoundError("Missing split directory: %s (no split fallback allowed)" % directory)
 
         self.A_paths = sorted(make_dataset(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
         self.B_paths = sorted(make_dataset(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
         self.A_size = len(self.A_paths)  # get the size of dataset A
         self.B_size = len(self.B_paths)  # get the size of dataset B
+
+        if not self.A_size or not self.B_size:
+            raise ValueError("Both domains must contain images: %s, %s" % (self.dir_A, self.dir_B))
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.

@@ -4,6 +4,7 @@ from options.train_options import TrainOptions
 from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
+from util.cut_evaluation import TrainingEvaluation, LossMean
 
 
 if __name__ == '__main__':
@@ -16,6 +17,7 @@ if __name__ == '__main__':
 
     visualizer = Visualizer(opt)   # create a visualizer that display/save images and plots
     opt.visualizer = visualizer
+    evaluation = TrainingEvaluation(opt) if opt.model == "cut" or opt.enable_validation or opt.enable_fid else None
     total_iters = 0                # the total number of training iterations
 
     optimize_time = 0.1
@@ -27,6 +29,7 @@ if __name__ == '__main__':
         epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
         visualizer.reset()              # reset the visualizer: make sure it saves the results to HTML at least once every epoch
 
+        epoch_losses = LossMean()
         dataset.set_epoch(epoch)
         for i, data in enumerate(dataset):  # inner loop within one epoch
             iter_start_time = time.time()  # timer for computation per iteration
@@ -44,7 +47,9 @@ if __name__ == '__main__':
                 model.setup(opt)               # regular setup: load and print networks; create schedulers
                 model.parallelize()
             model.set_input(data)  # unpack data from dataset and apply preprocessing
-            model.optimize_parameters()   # calculate loss functions, get gradients, update network weights
+            model.optimize_parameters()   # original CUT optimization
+            if evaluation is not None:
+                epoch_losses.add(model, batch_size)
             if len(opt.gpu_ids) > 0:
                 torch.cuda.synchronize()
             optimize_time = (time.time() - optimize_start_time) / batch_size * 0.005 + 0.995 * optimize_time
@@ -72,6 +77,9 @@ if __name__ == '__main__':
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
             model.save_networks('latest')
             model.save_networks(epoch)
+
+        if evaluation is not None:
+            evaluation.after_epoch(model, epoch, epoch_losses.mean())
 
         print('End of epoch %d / %d \t Time Taken: %d sec' % (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
         model.update_learning_rate()                     # update learning rates at the end of every epoch.
